@@ -73,25 +73,115 @@ def decode_msp_fc_version_request(payload: bytes) -> str:
     return MSG_INVALID_PAYLOAD
 
 def decode_msp_fc_version_response(payload: bytes) -> str:
-    if len(payload) == 4:
-        major, minor, patch, build = struct.unpack('<BBBB', payload)
-        return f"FC Version: {major}.{minor}.{patch} Build {build}"
+    if len(payload) == 3:
+        major, minor, patch = struct.unpack('<BBB', payload)
+        return f"FC Version: {major}.{minor}.{patch}"
     return MSG_INVALID_PAYLOAD
 
 # ---------------------------
 # MSP_BOARD_INFO
 # ---------------------------
 def decode_msp_board_info_request(payload: bytes) -> str:
+    """
+    Decodes the request for board information.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
     if len(payload) == 0:
-        return "Request for Board Info"
+        return "Request Board Information"
     return MSG_INVALID_PAYLOAD
 
+
 def decode_msp_board_info_response(payload: bytes) -> str:
-    if len(payload) >= 6:
-        name = payload[0:4].decode('ascii', 'replace').rstrip('\x00')
-        uid = payload[4:6].hex().upper()
-        return f"Board Info: Name='{name}', UID=0x{uid}"
-    return MSG_INVALID_PAYLOAD
+    """
+    Decodes the response for board information.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    index = 0
+    BOARD_IDENTIFIER_LENGTH = 4 # 4 UPPER CASE alpha numeric characters that identify the board being used
+    SIGNATURE_LENGTH = 32
+        
+    # Read board identifier
+    board_identifier = payload[index:index + BOARD_IDENTIFIER_LENGTH].decode('utf-8').strip('\x00')
+    index += BOARD_IDENTIFIER_LENGTH
+
+    # Read hardware revision
+    hardware_revision = int.from_bytes(payload[index:index + 2], 'little')
+    index += 2
+
+    # Read target capabilities
+    hasMAX7456 = payload[index]
+    index += 1
+
+    # Read target capabilities
+    target_capabilities = payload[index]
+    index += 1
+
+    # Read target name
+    target_name_length = payload[index]
+    index += 1
+    target_name = payload[index:index + target_name_length].decode('utf-8').strip('\x00')
+    index += target_name_length
+
+    # Read board name if available
+    board_name_length = payload[index]
+    index += 1
+    board_name = payload[index:index + board_name_length].decode('utf-8').strip('\x00')
+    index += board_name_length
+
+    # Read manufacturer ID if available
+    manufacturer_id_length = payload[index]
+    index += 1
+    manufacturer_id = payload[index:index + manufacturer_id_length].decode('utf-8').strip('\x00')
+    index += manufacturer_id_length
+
+    # Read signature
+    signature = payload[index:index + SIGNATURE_LENGTH].decode('utf-8').strip('\x00')
+    index += SIGNATURE_LENGTH
+    
+    # Read MCU type ID
+    mcu_type_id = payload[index]
+    index += 1
+
+    # Read configuration state
+    configuration_state = payload[index]
+    index += 1
+
+    # Read gyro sample rate
+    gyro_sample_rate = int.from_bytes(payload[index:index + 2], 'little')
+    index += 2
+
+    # Read configuration problems
+    configuration_problems = int.from_bytes(payload[index:index + 4], 'little')
+    index += 4
+
+    # Read SPI registered device count
+    spi_device_count = payload[index]
+    index += 1
+
+    # Read I2C registered device count
+    i2c_device_count = payload[index]
+
+    # Construct the response string
+    response = (f"ID: {board_identifier}\n"
+                f"Rev: {hardware_revision}\n"
+                f"MAX7456: {hasMAX7456 == 2}\n"
+                f"Capa: {target_capabilities}\n"
+                f"Target: {target_name}\n"
+                f"Board: {board_name}\n"
+                f"Man ID: {manufacturer_id}\n"
+                f"Sig: {signature}\n"
+                f"MCU: {mcu_type_id}\n"
+                f"State: {configuration_state}\n"
+                f"Gyro: {gyro_sample_rate} Hz\n"
+                f"Probs: {configuration_problems}\n"
+                f"SPI: {spi_device_count}\n"
+                f"I2C: {i2c_device_count}\n")
+
+    return response.strip()  # Remove any trailing whitespace
 
 # ---------------------------
 # MSP_BUILD_INFO
@@ -102,11 +192,41 @@ def decode_msp_build_info_request(payload: bytes) -> str:
     return MSG_INVALID_PAYLOAD
 
 def decode_msp_build_info_response(payload: bytes) -> str:
-    try:
-        build_info = payload.decode('ascii', 'replace').rstrip('\x00')
-        return f"Build Info: {build_info}"
-    except:
+    """
+    Decodes the response for build information.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    GIT_SHORT_REVISION_LENGTH = 7
+    BUILD_DATE_LENGTH = 11 # "MMM DD YYYY" MMM = Jan/Feb/...
+    BUILD_TIME_LENGTH = 8 # "HH:MM:SS"
+
+    if len(payload) < (BUILD_DATE_LENGTH + BUILD_TIME_LENGTH + GIT_SHORT_REVISION_LENGTH):
         return MSG_INVALID_PAYLOAD
+
+    index = 0
+    build_date = payload[index:index + BUILD_DATE_LENGTH].decode('utf-8').strip('\x00')  # Build date
+    index += BUILD_DATE_LENGTH
+    build_time = payload[index:index + BUILD_TIME_LENGTH].decode('utf-8').strip('\x00')  # Build time
+    index += BUILD_TIME_LENGTH
+    short_git_revision = payload[index:index + GIT_SHORT_REVISION_LENGTH].decode('utf-8').strip('\x00')  # Short Git revision
+    index += GIT_SHORT_REVISION_LENGTH
+
+    # Check for build info flags if present
+    build_info_flags = None
+    if len(payload) > index:
+        build_info_flags = payload[index]  # Assuming it's a single byte for flags
+
+    # Construct the response string
+    response = (f"Date: {build_date}\n"
+                f", Time: {build_time}\n"
+                f", Commit: {short_git_revision}\n")
+    
+    if build_info_flags is not None:
+        response += f", Flags: {build_info_flags}\n"
+
+    return response.strip()  # Remove any trailing whitespace
 
 # ---------------------------
 # MSP_NAME
@@ -2535,6 +2655,325 @@ def decode_msp_sdcard_summary_response(payload: bytes) -> str:
     return response.strip()  # Remove any trailing whitespace
 
 # ---------------------------
+# MSP_UID
+# ---------------------------
+def decode_msp_uid_request(payload: bytes) -> str:
+    """
+    Decodes the request for UID information.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) == 0:
+        return "Request UID"
+    return MSG_INVALID_PAYLOAD
+
+def decode_msp_uid_response(payload: bytes) -> str:
+    """
+    Decodes the response for UID information.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) < 12:  # Minimum expected length for three 32-bit values
+        return MSG_INVALID_PAYLOAD
+
+    index = 0
+    uid_0 = int.from_bytes(payload[index:index + 4], 'little')  # First UID part
+    index += 4
+    uid_1 = int.from_bytes(payload[index:index + 4], 'little')  # Second UID part
+    index += 4
+    uid_2 = int.from_bytes(payload[index:index + 4], 'little')  # Third UID part
+
+    # Construct the response string
+    response = (f"UID : {uid_0:08x}.{uid_1:08x}.{uid_2:08x}\n")
+
+    return response.strip()  # Remove any trailing whitespace
+
+# ---------------------------
+# MSP_SET_ARMING_DISABLED
+# ---------------------------
+def decode_msp_set_arming_disabled_request(payload: bytes) -> str:
+    """
+    Decodes the request to set arming disabled.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) < 1:
+        return MSG_INVALID_PAYLOAD
+
+    command = payload[0]  # Read the command
+    disable_runaway_takeoff = 0
+
+    # Check if there is an additional byte for disable runaway takeoff
+    if len(payload) > 1:
+        disable_runaway_takeoff = payload[1]  # Read the disable runaway takeoff flag
+
+    # Construct the response string
+    response = (f"{command == 1}\n"
+                f", Disable Runaway Takeoff: {disable_runaway_takeoff == 1}\n")
+
+    return response.strip()  # Remove any trailing whitespace
+
+
+def decode_msp_set_arming_disabled_response(payload: bytes) -> str:
+    """
+    Decodes the response for setting arming disabled.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    # Assuming the response does not require a payload
+    return "Done\n"
+
+# ---------------------------
+# MSP_SET_RTC (ID: 121)
+# ---------------------------
+def decode_msp_set_rtc_request(payload: bytes) -> str:
+    """
+    Decodes the request to set the RTC (Real-Time Clock).
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) < 6:  # Minimum length: 4 bytes for seconds + 2 bytes for milliseconds
+        return MSG_INVALID_PAYLOAD
+
+    # Read seconds and milliseconds from the payload
+    secs = int.from_bytes(payload[0:4], 'little')  # Read 4 bytes for seconds
+    millis = int.from_bytes(payload[4:6], 'little')  # Read 2 bytes for milliseconds
+
+    # Construct the response string
+    response = (f"Set RTC Request:\n"
+                f"Seconds: {secs}\n"
+                f"Milliseconds: {millis}\n")
+
+    return response.strip()  # Remove any trailing whitespace
+
+
+def decode_msp_set_rtc_response(payload: bytes) -> str:
+    """
+    Decodes the response for setting the RTC.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    # Assuming the response does not require a payload
+    return "Done"
+
+# ---------------------------
+# MSP_ACC_TRIM
+# ---------------------------
+def decode_msp_acc_trim_request(payload: bytes) -> str:
+    """
+    Decodes the request for UID information.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) == 0:
+        return "Request acc trim"
+    return MSG_INVALID_PAYLOAD
+
+
+def decode_msp_acc_trim_response(payload: bytes) -> str:
+    """
+    Decodes the request to set accelerometer trim values.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) < 4:  # Minimum length: 2 bytes for pitch + 2 bytes for roll
+        return MSG_INVALID_PAYLOAD
+
+    # Read pitch and roll trim values from the payload
+    pitch_trim = int.from_bytes(payload[0:2], 'little')  # Read 2 bytes for pitch
+    roll_trim = int.from_bytes(payload[2:4], 'little')  # Read 2 bytes for roll
+
+    # Construct the response string
+    response = (f"Pitch Trim: {pitch_trim}\n"
+                f"Roll Trim: {roll_trim}\n")
+
+    return response.strip()  # Remove any trailing whitespace
+
+# ---------------------------
+# MSP_BLACKBOX_CONFIG
+# ---------------------------
+def decode_msp_blackbox_config_request(payload: bytes) -> str:
+    """
+    Decodes the request for blackbox configuration.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) == 0:
+        return "Request Blackbox Configuration"
+    return MSG_INVALID_PAYLOAD
+
+
+def decode_msp_blackbox_config_response(payload: bytes) -> str:
+    """
+    Decodes the response for blackbox configuration.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) < 10:  # Minimum expected length based on the parameters
+        return MSG_INVALID_PAYLOAD
+
+    index = 0
+    blackbox_supported = payload[index]  # Blackbox supported (1 byte)
+    index += 1
+    device = payload[index]  # Blackbox device (1 byte)
+    index += 1
+    rate_numerator = payload[index]  # Rate numerator (1 byte, not used anymore)
+    index += 1
+    rate_denominator = payload[index]  # Rate denominator (1 byte)
+    index += 1
+    p_ratio = int.from_bytes(payload[index:index + 2], 'little')  # P ratio (2 bytes)
+    index += 2
+    sample_rate = payload[index]  # Sample rate (1 byte)
+    index += 1
+
+    # Check for fields disabled mask if present (added in API 1.45)
+    fields_disabled_mask = 0
+    if len(payload) > index:
+        fields_disabled_mask = int.from_bytes(payload[index:index + 4], 'little')  # Fields disabled mask (4 bytes)
+
+    # Construct the response string
+    response = (f"Supported: {'Yes' if blackbox_supported == 1 else 'No'}\n"
+                f"Device: {device}\n"
+                f"Rate: {rate_numerator}/{rate_denominator}\n"
+                f"Ratio: {p_ratio}\n"
+                f"Sample: {sample_rate}\n"
+                f"Field Mask: {fields_disabled_mask:08x}\n")
+
+    return response.strip()  # Remove any trailing whitespace
+
+# ---------------------------
+# MSP_SET_OSD_CONFIG
+# ---------------------------
+def decode_msp_set_osd_config_request(payload: bytes) -> str:
+    """
+    Decodes the request to set OSD configuration.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) == 0:
+        return "Request to set OSD configuration."
+
+    addr = payload[0]  # Read the address
+
+    if addr == 0xFF:  # Equivalent to -1 in signed 8-bit
+        # Set general OSD settings
+        if len(payload) < 2:
+            return MSG_INVALID_PAYLOAD
+
+        video_system = payload[1]  # Read video system
+        # Additional checks and settings based on video_system would go here...
+
+        # Read other settings
+        if len(payload) < 6:
+            return MSG_INVALID_PAYLOAD
+
+        units = payload[2]  # Read units
+        rssi_alarm = payload[3]  # Read RSSI alarm
+        cap_alarm = int.from_bytes(payload[4:6], 'little')  # Read capacitor alarm
+        alt_alarm = int.from_bytes(payload[6:8], 'little')  # Read altitude alarm
+
+        # Construct the response string
+        response = (f"Video System: {video_system}\n"
+                    f"Units: {units}\n"
+                    f"RSSI Alarm: {rssi_alarm}\n"
+                    f"Cap Alarm: {cap_alarm}\n"
+                    f"Alt Alarm: {alt_alarm}\n")
+
+        if len(payload) >= 8:
+            enabledWarnings = int.from_bytes(payload[8:10], 'little')  # Low 16 bits
+            response += (f"Enabled Warnings: {enabledWarnings:04x}\n")
+        if len(payload) >= 12:
+            enabledWarnings = int.from_bytes(payload[10:14], 'little')  # 32-bit version
+            response += (f"Enabled Warnings: {enabledWarnings:08x}\n")
+
+        # Read selected OSD profile
+        profile_index = 0
+        if len(payload) >= 13:
+            profile_index = payload[12]  # Read selected profile index
+
+        # Read OSD stick overlay mode
+        overlay_radio_mode = 0
+        if len(payload) >= 14:
+            overlay_radio_mode = payload[13]  # Read overlay mode
+
+        # Read camera frame width/height
+        camera_frame_width = 0
+        camera_frame_height = 0
+        if len(payload) >= 16:
+            camera_frame_width = payload[14]  # Read camera frame width
+            camera_frame_height = payload[15]  # Read camera frame height
+
+        # Read link quality alarm
+        link_quality_alarm = 0
+        if len(payload) >= 18:
+            link_quality_alarm = int.from_bytes(payload[16:18], 'little')  # Read link quality alarm
+
+        # Read RSSI dBm alarm
+        rssi_dbm_alarm = 0
+        if len(payload) >= 20:
+            rssi_dbm_alarm = int.from_bytes(payload[18:20], 'little')  # Read RSSI dBm alarm
+
+        # Here you would set the values to the appropriate configuration structure
+        # For example:
+        # set_osd_config(units, rssi_alarm, cap_alarm, alt_alarm, enabled_warnings, profile_index, overlay_radio_mode, camera_frame_width, camera_frame_height, link_quality_alarm, rssi_dbm_alarm)
+
+        response += (f"Profile Index: {profile_index}\n"
+                    f"Overlay Radio Mode: {overlay_radio_mode}\n"
+                    f"Camera Frame Width: {camera_frame_width}\n"
+                    f"Camera Frame Height: {camera_frame_height}\n"
+                    f"Link Quality Alarm: {link_quality_alarm}\n"
+                    f"RSSI dBm Alarm: {rssi_dbm_alarm}\n")
+
+        return response
+
+    elif addr == 0xFE:  # Equivalent to -2 in signed 8-bit
+        # Timers
+        if len(payload) < 3:
+            return MSG_INVALID_PAYLOAD
+
+        index = payload[1]  # Read timer index
+        timer_value = int.from_bytes(payload[2:4], 'little')  # Read timer value
+
+        return f"Timer {index} set to {timer_value}"
+
+    else:
+        # Handle setting of specific OSD elements or statistics
+        if len(payload) < 3:
+            return MSG_INVALID_PAYLOAD
+
+        value = int.from_bytes(payload[1:3], 'little')  # Read value
+        screen = payload[2] if len(payload) > 2 else 1  # Read screen index
+
+        if screen == 0:
+            # Set statistic item enable
+            return f"Stat item {addr} enabled {value == 1}"
+        else:
+            return f"OSD element {addr} updated with value {value:04x}"
+
+
+
+def decode_msp_set_osd_config_response(payload: bytes) -> str:
+    """
+    Decodes the response for setting OSD configuration.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    # Assuming the response does not require a payload
+    return "OSD configuration updated successfully."
+
+# ---------------------------
 # Default Decoder
 # ---------------------------
 
@@ -2707,7 +3146,16 @@ MSP_SET_GPS_RESCUE = 225
 MSP_SET_GPS_RESCUE_PIDS = 226
 MSP_SET_VTXTABLE_BAND = 227
 MSP_SET_VTXTABLE_POWERLEVEL = 228
+MSP_MULTIPLE_MSP = 230
 MSP_MODE_RANGES_EXTRA = 238
+MSP_SET_ACC_TRIM = 239
+MSP_ACC_TRIM = 240
+MSP_SET_SERVO_MIX_RULE = 242
+MSP_SET_PASSTHROUGH = 245
+MSP_SET_RTC = 246
+MSP_RTC = 247
+MSP_SET_BOARD_INFO = 248
+MSP_SET_SIGNATURE = 249
 MSP_EEPROM_WRITE = 250
 MSP_DEBUGMSG = 253
 MSP_DEBUG = 254
@@ -2863,7 +3311,16 @@ MSP_COMMANDS_DICT = {
     MSP_SET_GPS_RESCUE_PIDS: "MSP_SET_GPS_RESCUE_PIDS",
     MSP_SET_VTXTABLE_BAND: "MSP_SET_VTXTABLE_BAND",
     MSP_SET_VTXTABLE_POWERLEVEL: "MSP_SET_VTXTABLE_POWERLEVEL",
+    MSP_MULTIPLE_MSP: "MSP_MULTIPLE_MSP",
     MSP_MODE_RANGES_EXTRA: "MSP_MODE_RANGES_EXTRA",
+    MSP_SET_ACC_TRIM: "MSP_SET_ACC_TRIM",
+    MSP_ACC_TRIM: "MSP_ACC_TRIM",
+    MSP_SET_SERVO_MIX_RULE: "MSP_SET_SERVO_MIX_RULE",
+    MSP_SET_PASSTHROUGH: "MSP_SET_PASSTHROUGH",
+    MSP_SET_RTC: "MSP_SET_RTC",
+    MSP_RTC: "MSP_RTC",
+    MSP_SET_BOARD_INFO: "MSP_SET_BOARD_INFO",
+    MSP_SET_SIGNATURE: "MSP_SET_SIGNATURE",
     MSP_EEPROM_WRITE: "MSP_EEPROM_WRITE",
     MSP_DEBUGMSG: "MSP_DEBUGMSG",
     MSP_DEBUG: "MSP_DEBUG",
@@ -3103,6 +3560,30 @@ MSP_CMD_DICT = {
         "decoder_response": decode_msp_sdcard_summary_response,
         "decoder_request": decode_msp_sdcard_summary_request
     },
+    MSP_UID: {
+        "decoder_response": decode_msp_uid_response,
+        "decoder_request": decode_msp_uid_request
+    },
+    MSP_SET_ARMING_DISABLED: {
+        "decoder_response": decode_msp_set_arming_disabled_response,
+        "decoder_request": decode_msp_set_arming_disabled_request
+    },
+    MSP_SET_RTC: {
+        "decoder_response": decode_msp_set_rtc_response,
+        "decoder_request": decode_msp_set_rtc_request
+    },
+    MSP_ACC_TRIM: {
+        "decoder_response": decode_msp_acc_trim_response,
+        "decoder_request": decode_msp_acc_trim_request
+    },
+    MSP_BLACKBOX_CONFIG: {
+        "decoder_response": decode_msp_blackbox_config_response,
+        "decoder_request": decode_msp_blackbox_config_request
+    },
+    MSP_SET_OSD_CONFIG: {
+        "decoder_response": decode_msp_set_osd_config_response,
+        "decoder_request": decode_msp_set_osd_config_request
+    },
 }
 # ===========================
 # Payload Decoding Function
@@ -3146,7 +3627,7 @@ class Hla(HighLevelAnalyzer):
     def __init__(self):
         self.buffer = bytearray()
         self.start_time = None
-        self.HEADERS = [b"$M<", b"$M>"]  # request and response headers
+        self.HEADERS = [b"$M<", b"$M>", b"$X<", b"$X>"]  # request and response headers
 
     def decode(self, frame: AnalyzerFrame):
         if frame.type != 'data':
@@ -3163,48 +3644,63 @@ class Hla(HighLevelAnalyzer):
             header_positions = [self.buffer.find(h) for h in self.HEADERS]
             header_positions = [pos for pos in header_positions if pos != -1]
             if not header_positions:
-                # No headers found, discard buffer
-                self.buffer.clear()
+                # No headers found, first discard character
+                del self.buffer[:1]
                 self.start_time = None
                 break
             header_index = min(header_positions)
             if header_index > 0:
                 # Discard bytes before the header
                 del self.buffer[:header_index]
-            if len(self.buffer) < 6:
-                break
-            found_header = self.buffer[:3]
-            p_size = self.buffer[3]
-            needed_len = 6 + p_size  # 3(header) +1(size)+1(cmd)+p_size +1(chksum)
-            if len(self.buffer) < needed_len:
-                break
-            cmd = self.buffer[4]
-            payload = self.buffer[5:5 + p_size]
-            chksum = self.buffer[5 + p_size]
-            calc_sum = p_size ^ cmd
-            for bb in payload:
-                calc_sum ^= bb
-            calc_sum &= 0xFF
-            direction = "response" if found_header == b"$M>" else "request"
-            if (calc_sum == chksum) or (p_size == 255):
-                decoded_info = decode_msp_payload(cmd, payload, direction)
-                info_str = f"{direction} {decoded_info}"
+            if self.buffer[1] == 88: # MSP2
+                if len(self.buffer) < 8:
+                    break
+                p_size = int.from_bytes(self.buffer[6:8], 'little')
+                needed_len = 9 + p_size  # 3(header)+5(v2 header)+p_size+1(v2 chksum)
+                if len(self.buffer) < needed_len:
+                    break
+                cmd = int.from_bytes(self.buffer[4:6], 'little')
                 results.append(AnalyzerFrame(
                     'msp_frame',
                     self.start_time,
                     frame.end_time,
-                    {"info": info_str, "cmd": cmd, "payload": payload, "direction": direction}
-                ))
+                    {"info": f"MSP2: ignore for now {cmd:04x}", "direction": "unknown"}
+                    ))
             else:
-                cmd_name = MSP_COMMANDS_DICT.get(cmd, "Unknown Command")
-                error_str = (f"{direction} {cmd_name} CRC Error: expected=0x{calc_sum:02X}, "
-                             f"got=0x{chksum:02X}, size={p_size}")
-                results.append(AnalyzerFrame(
-                    'msp_error',
-                    self.start_time,
-                    frame.end_time,
-                    {"error": error_str}
-                ))
+                if len(self.buffer) < 6:
+                    break
+                found_header = self.buffer[:3]
+                p_size = self.buffer[3]
+                needed_len = 6 + p_size  # 3(header) +1(size)+1(cmd)+p_size +1(chksum)
+                if len(self.buffer) < needed_len:
+                    break
+                cmd = self.buffer[4]
+                payload = self.buffer[5:5 + p_size]
+                chksum = self.buffer[5 + p_size]
+                calc_sum = p_size ^ cmd
+                for bb in payload:
+                    calc_sum ^= bb
+                calc_sum &= 0xFF
+                direction = "response" if found_header == b"$M>" else "request"
+                if (calc_sum == chksum) or (p_size == 255):
+                    decoded_info = decode_msp_payload(cmd, payload, direction)
+                    info_str = f"{direction} {decoded_info}"
+                    results.append(AnalyzerFrame(
+                        'msp_frame',
+                        self.start_time,
+                        frame.end_time,
+                        {"info": info_str, "cmd": cmd, "payload": payload, "direction": direction}
+                    ))
+                else:
+                    cmd_name = MSP_COMMANDS_DICT.get(cmd, "Unknown Command" + str(self.buffer[:2]))
+                    error_str = (f"{direction} {cmd_name} CRC Error: expected=0x{calc_sum:02X}, "
+                                f"got=0x{chksum:02X}, size={p_size}")
+                    results.append(AnalyzerFrame(
+                        'msp_error',
+                        self.start_time,
+                        frame.end_time,
+                        {"error": error_str}
+                    ))
             del self.buffer[:needed_len]
             if len(self.buffer) == 0:
                 self.start_time = None
