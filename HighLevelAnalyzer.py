@@ -2974,6 +2974,248 @@ def decode_msp_set_osd_config_response(payload: bytes) -> str:
     return "OSD configuration updated successfully."
 
 # ---------------------------
+# MSP2_GET_TEXT
+# ---------------------------
+def decode_msp2_get_text_request(payload: bytes) -> str:
+    """
+    Decodes the request for text data.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) == 0:
+        return "Request to get text data."
+
+    # Assuming the payload may contain a specific request type or identifier
+    request_type = payload[0] if len(payload) > 0 else None
+
+    return f"Request to get text data with type: {request_type}"
+
+
+def decode_msp2_get_text_response(payload: bytes) -> str:
+    """
+    Decodes the response for text data.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    if len(payload) == 0:
+        return MSG_INVALID_PAYLOAD
+
+    textType = payload[0]
+    textLength = payload[1]
+    textStr = payload[2:2 + textLength]
+    return (f"Type/Length: {textType}/{textLength}\n"
+            f"Text: \"{textStr.decode('utf-8')}\"\n")
+
+# ---------------------------
+# MSP2_SENSOR_CONFIG_ACTIVE
+# ---------------------------
+
+def decode_msp2_sensor_config_active_request(payload: bytes) -> str:
+    """
+    Decodes the request for active sensor configuration.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    return "Request for active sensor configuration."
+
+
+def decode_msp2_sensor_config_active_response(payload: bytes) -> str:
+    """
+    Decodes the response for active sensor configuration.
+
+    :param payload: Payload bytes containing sensor statuses.
+    :return: Decoded string indicating the active sensor configuration.
+    """
+    if len(payload) < 6:  # Expecting at least 6 bytes for the sensors
+        return MSG_INVALID_PAYLOAD
+
+    response = ""
+
+    # Read each sensor status from the payload
+    for i in range(6):  # Assuming 6 sensors: gyro, acc, baro, mag, rangefinder, optical flow
+        sensor_status = payload[i]
+        response += f"Sensor {i}: ID {sensor_status}\n"
+
+    return response
+
+# ---------------------------
+# MSP_MOTOR
+# ---------------------------
+
+def decode_msp_motor_request(payload: bytes) -> str:
+    """
+    Decodes the request for motor configuration.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    return "Request for motor value"
+
+
+def decode_msp_motor_response(payload: bytes) -> str:
+    """
+    Decodes the response for motor configuration.
+
+    :param payload: Payload bytes containing motor value.
+    :return: Decoded string indicating the motor values.
+    """
+    if len(payload) < 16:  # Expecting at least 16 bytes for the motors
+        return MSG_INVALID_PAYLOAD
+
+    response = ""
+
+    # Read each motor value from the payload
+    for i in range(8):
+        offset = i * 2
+        motor_value = int.from_bytes(payload[offset:offset + 2], 'little')
+        response += f"{motor_value}\n"
+
+    return response
+# ---------------------------
+# MSP_DEBUG
+# ---------------------------
+
+def decode_msp_debug_request(payload: bytes) -> str:
+    """
+    Decodes the request for debug info.
+
+    :param payload: Payload bytes
+    :return: Decoded string
+    """
+    return "Request for debug"
+
+
+def decode_msp_debug_response(payload: bytes) -> str:
+    """
+    Decodes the response for debug
+
+    :param payload: Payload bytes containing debug values.
+    :return: Decoded string indicating the debug values.
+    """
+    if len(payload) < 16:  # Expecting at least 16 bytes for the debug
+        return MSG_INVALID_PAYLOAD
+
+    response = ""
+
+    # Read each debug value from the payload
+    for i in range(8):
+        offset = i * 2
+        debug_value = int.from_bytes(payload[offset:offset + 2], 'little')
+        response += f"{debug_value}\n"
+
+    return response
+
+# ---------------------------
+# MSP_VTX_CONFIG
+# ---------------------------
+def decode_msp_vtx_config_request(payload: bytes) -> str:
+    """
+    Decodes the request for VTX configuration.
+
+    :param payload: Payload bytes
+    :return: Decoded string indicating the request type.
+    """
+    return "Request to get VTX configuration."
+
+
+def decode_msp_vtx_config_response(payload: bytes) -> str:
+    """
+    Decodes the response for VTX configuration.
+
+    :param payload: Payload bytes containing VTX configuration data.
+    :return: Decoded string indicating the VTX configuration.
+    """
+    if len(payload) < 10:  # Minimum expected length based on the provided data structure
+        return MSG_INVALID_PAYLOAD
+
+    vtx_type = payload[0]  # Read VTX type
+    vtx_band = payload[1]  # Read VTX band
+    vtx_channel = payload[2]  # Read VTX channel
+    vtx_power = payload[3]  # Read VTX power level
+    vtx_pit_mode = payload[4]  # Read VTX pit mode status
+    vtx_freq = int.from_bytes(payload[5:7], 'little')  # Read VTX frequency (2 bytes)
+    device_is_ready = payload[7]  # Read device ready status
+    low_power_disarm = payload[8]  # Read low power disarm status
+    pit_mode_freq = int.from_bytes(payload[9:11], 'little')  # Read pit mode frequency (2 bytes)
+
+    # Check for VTX table availability
+    if payload[11] == 1:  # Assuming the next byte indicates if the VTX table is available
+        vtx_bands = payload[12]  # Read VTX table bands
+        vtx_channels = payload[13]  # Read VTX table channels
+        vtx_power_levels = payload[14]  # Read VTX table power levels
+    else:
+        vtx_bands = vtx_channels = vtx_power_levels = 0
+
+    response = (f"Type: {vtx_type}\n"
+                f"Band: {vtx_band}\n"
+                f"Ch: {vtx_channel}\n"
+                f"Pwr: {vtx_power}\n"
+                f"Pit: {'Enabled' if vtx_pit_mode else 'Disabled'}\n"
+                f"Freq: {vtx_freq} Hz\n"
+                f"Rdy: {'Yes' if device_is_ready else 'No'}\n"
+                f"LP Dis: {'Enabled' if low_power_disarm else 'Disabled'}\n"
+                f"Pit Freq: {pit_mode_freq} Hz\n"
+                f"TBnds: {vtx_bands}\n"
+                f"Chls: {vtx_channels}\n"
+                f"Lvls: {vtx_power_levels}")
+
+    return response
+
+# ---------------------------
+# MSP2_GET_VTX_DEVICE_STATUS (ID: 0x3004)
+# ---------------------------
+MSG_INVALID_PAYLOAD = "Invalid payload length for VTX device status."
+
+def decode_msp2_get_vtx_device_status_request(payload: bytes) -> str:
+    """
+    Decodes the request for VTX device status.
+
+    :param payload: Payload bytes
+    :return: Decoded string indicating the request type.
+    """
+    return "Request to get VTX device status."
+
+
+def decode_msp2_get_vtx_device_status_response(payload: bytes) -> str:
+    """
+    Decodes the response for VTX device status.
+
+    :param payload: Payload bytes containing VTX device status data.
+    :return: Decoded string indicating the VTX device status.
+    """
+    if len(payload) < 12:  # Minimum expected length based on the provided data structure
+        return MSG_INVALID_PAYLOAD
+
+    # Extract VTX device status from the payload
+    vtx_type = payload[0]  # Read VTX type
+    vtx_status = payload[1]  # Read VTX status
+    vtx_band = payload[2]  # Read VTX band
+    vtx_channel = payload[3]  # Read VTX channel
+    vtx_power = payload[4]  # Read VTX power level
+    vtx_freq = int.from_bytes(payload[5:7], 'little')  # Read VTX frequency (2 bytes)
+    device_is_ready = payload[7]  # Read device ready status
+    low_power_disarm = payload[8]  # Read low power disarm status
+    pit_mode_freq = int.from_bytes(payload[9:11], 'little')  # Read pit mode frequency (2 bytes)
+    band_and_channel_available = payload[11]  # Read band and channel availability
+
+    # Construct the response string
+    response = (f"Type: {vtx_type}\n"
+                f"Status: {'Active' if vtx_status else 'Inactive'}\n"
+                f"Bnd: {vtx_band}\n"
+                f"Ch: {vtx_channel}\n"
+                f"Pwr: {vtx_power}\n"
+                f"Freq: {vtx_freq} Hz\n"
+                f"Rdy: {'Yes' if device_is_ready else 'No'}\n"
+                f"LP Dis: {'Enabled' if low_power_disarm else 'Disabled'}\n"
+                f"Pit F: {pit_mode_freq} Hz\n"
+                f"Avail: {'Yes' if band_and_channel_available else 'No'}")
+
+    return response
+
+# ---------------------------
 # Default Decoder
 # ---------------------------
 
@@ -3160,6 +3402,22 @@ MSP_EEPROM_WRITE = 250
 MSP_DEBUGMSG = 253
 MSP_DEBUG = 254
 MSP_V2_FRAME = 255
+MSP2_COMMON_SERIAL_CONFIG = 0x1009
+MSP2_COMMON_SET_SERIAL_CONFIG = 0x100A
+MSP2_SENSOR_GPS = 0x1F03
+MSP2_SENSOR_RANGEFINDER_LIDARMT = 0x1F01
+MSP2_SENSOR_OPTICALFLOW_MT = 0x1F02
+MSP2_MOTOR_OUTPUT_REORDERING = 0x3001
+MSP2_SET_MOTOR_OUTPUT_REORDERING = 0x3002
+MSP2_SEND_DSHOT_COMMAND = 0x3003
+MSP2_GET_VTX_DEVICE_STATUS = 0x3004
+MSP2_GET_OSD_WARNINGS = 0x3005
+MSP2_GET_TEXT = 0x3006
+MSP2_SET_TEXT = 0x3007
+MSP2_GET_LED_STRIP_CONFIG_VALUES = 0x3008
+MSP2_SET_LED_STRIP_CONFIG_VALUES = 0x3009
+MSP2_SENSOR_CONFIG_ACTIVE = 0x300A
+MSP2_SENSOR_OPTICALFLOW = 0x300B
 
 MSP_COMMANDS_DICT = {
     MSP_API_VERSION: "MSP_API_VERSION",
@@ -3325,6 +3583,22 @@ MSP_COMMANDS_DICT = {
     MSP_DEBUGMSG: "MSP_DEBUGMSG",
     MSP_DEBUG: "MSP_DEBUG",
     MSP_V2_FRAME: "MSP_V2_FRAME",
+    MSP2_COMMON_SERIAL_CONFIG: "MSP2_COMMON_SERIAL_CONFIG",
+    MSP2_COMMON_SET_SERIAL_CONFIG: "MSP2_COMMON_SET_SERIAL_CONFIG",
+    MSP2_SENSOR_GPS: "MSP2_SENSOR_GPS",
+    MSP2_SENSOR_RANGEFINDER_LIDARMT: "MSP2_SENSOR_RANGEFINDER_LIDARMT",
+    MSP2_SENSOR_OPTICALFLOW_MT: "MSP2_SENSOR_OPTICALFLOW_MT",
+    MSP2_MOTOR_OUTPUT_REORDERING: "MSP2_MOTOR_OUTPUT_REORDERING",
+    MSP2_SET_MOTOR_OUTPUT_REORDERING: "MSP2_SET_MOTOR_OUTPUT_REORDERING",
+    MSP2_SEND_DSHOT_COMMAND: "MSP2_SEND_DSHOT_COMMAND",
+    MSP2_GET_VTX_DEVICE_STATUS: "MSP2_GET_VTX_DEVICE_STATUS",
+    MSP2_GET_OSD_WARNINGS: "MSP2_GET_OSD_WARNINGS",
+    MSP2_GET_TEXT: "MSP2_GET_TEXT",
+    MSP2_SET_TEXT: "MSP2_SET_TEXT",
+    MSP2_GET_LED_STRIP_CONFIG_VALUES: "MSP2_GET_LED_STRIP_CONFIG_VALUES",
+    MSP2_SET_LED_STRIP_CONFIG_VALUES: "MSP2_SET_LED_STRIP_CONFIG_VALUES",
+    MSP2_SENSOR_CONFIG_ACTIVE: "MSP2_SENSOR_CONFIG_ACTIVE",
+    MSP2_SENSOR_OPTICALFLOW: "MSP2_SENSOR_OPTICALFLOW",
 }
 
 MSP_CMD_DICT = {
@@ -3584,6 +3858,30 @@ MSP_CMD_DICT = {
         "decoder_response": decode_msp_set_osd_config_response,
         "decoder_request": decode_msp_set_osd_config_request
     },
+    MSP2_GET_TEXT: {
+        "decoder_response": decode_msp2_get_text_response,
+        "decoder_request": decode_msp2_get_text_request
+    },
+    MSP2_SENSOR_CONFIG_ACTIVE: {
+        "decoder_response": decode_msp2_sensor_config_active_response,
+        "decoder_request": decode_msp2_sensor_config_active_request
+    },
+    MSP_MOTOR: {
+        "decoder_response": decode_msp_motor_response,
+        "decoder_request": decode_msp_motor_request
+    },
+    MSP_DEBUG: {
+        "decoder_response": decode_msp_debug_response,
+        "decoder_request": decode_msp_debug_request
+    },
+    MSP_VTX_CONFIG: {
+        "decoder_response": decode_msp_vtx_config_response,
+        "decoder_request": decode_msp_vtx_config_request
+    },
+    MSP2_GET_VTX_DEVICE_STATUS: {
+        "decoder_response": decode_msp2_get_vtx_device_status_response,
+        "decoder_request": decode_msp2_get_vtx_device_status_request
+    },
 }
 # ===========================
 # Payload Decoding Function
@@ -3617,6 +3915,18 @@ def decode_msp_payload(cmd: int, payload: bytes, direction: str) -> str:
 # ===========================
 # High-Level Analyzer Class
 # ===========================
+def crc8_bf(data: bytes) -> int:
+    polynomial = 0xD5
+    crc = 0x00
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            if crc & 0x80:
+                crc = (crc << 1) ^ polynomial
+            else:
+                crc <<= 1
+            crc &= 0xFF  # Ensure CRC remains 8-bit
+    return crc
 
 class Hla(HighLevelAnalyzer):
     result_types = {
@@ -3652,58 +3962,73 @@ class Hla(HighLevelAnalyzer):
             if header_index > 0:
                 # Discard bytes before the header
                 del self.buffer[:header_index]
-            if self.buffer[1] == 88: # MSP2
+
+            if self.buffer[1] == ord('X'): # MSP2
                 if len(self.buffer) < 8:
                     break
+                found_header = self.buffer[:3]
                 p_size = int.from_bytes(self.buffer[6:8], 'little')
                 needed_len = 9 + p_size  # 3(header)+5(v2 header)+p_size+1(v2 chksum)
                 if len(self.buffer) < needed_len:
                     break
+                msp2_msg = self.buffer[3:8 + p_size]
                 cmd = int.from_bytes(self.buffer[4:6], 'little')
-                results.append(AnalyzerFrame(
-                    'msp_frame',
-                    self.start_time,
-                    frame.end_time,
-                    {"info": f"MSP2: ignore for now {cmd:04x}", "direction": "unknown"}
-                    ))
+                payload = self.buffer[8:8 + p_size]
+                calc_sum = crc8_bf(msp2_msg)
+                chksum = self.buffer[8 + p_size]
             else:
                 if len(self.buffer) < 6:
                     break
                 found_header = self.buffer[:3]
                 p_size = self.buffer[3]
-                needed_len = 6 + p_size  # 3(header) +1(size)+1(cmd)+p_size +1(chksum)
+                needed_len = 6 + p_size  # 3(header)+1(size)+1(cmd)+p_size +1(chksum)
                 if len(self.buffer) < needed_len:
                     break
                 cmd = self.buffer[4]
-                payload = self.buffer[5:5 + p_size]
-                chksum = self.buffer[5 + p_size]
-                calc_sum = p_size ^ cmd
-                for bb in payload:
-                    calc_sum ^= bb
-                calc_sum &= 0xFF
-                direction = "response" if found_header == b"$M>" else "request"
-                if (calc_sum == chksum) or (p_size == 255):
-                    decoded_info = decode_msp_payload(cmd, payload, direction)
-                    info_str = f"{direction} {decoded_info}"
-                    results.append(AnalyzerFrame(
-                        'msp_frame',
-                        self.start_time,
-                        frame.end_time,
-                        {"info": info_str, "cmd": cmd, "payload": payload, "direction": direction}
-                    ))
+                if cmd == MSP_V2_FRAME:
+                    if len(self.buffer) < 11:
+                        break
+                    found_header = self.buffer[:3]
+                    p_size = int.from_bytes(self.buffer[9:11], 'little')
+                    needed_len = 3 + 9 + p_size  # 3(header)+1(size)+1(cmd)+5(v2 header)+p_size+1(v2 chksum)+1(v1 chksum)
+                    if len(self.buffer) < needed_len:
+                        break
+                    msp2_msg = self.buffer[5:10 + p_size]
+                    cmd = int.from_bytes(self.buffer[4:6], 'little')
+                    payload = self.buffer[10+10 + p_size]
+                    calc_sum = crc8_bf(msp2_msg)
+                    chksum = self.buffer[10 + p_size]
                 else:
-                    cmd_name = MSP_COMMANDS_DICT.get(cmd, "Unknown Command" + str(self.buffer[:2]))
-                    error_str = (f"{direction} {cmd_name} CRC Error: expected=0x{calc_sum:02X}, "
-                                f"got=0x{chksum:02X}, size={p_size}")
-                    results.append(AnalyzerFrame(
-                        'msp_error',
-                        self.start_time,
-                        frame.end_time,
-                        {"error": error_str}
-                    ))
+                    payload = self.buffer[5:5 + p_size]
+                    chksum = self.buffer[5 + p_size]
+                    calc_sum = p_size ^ cmd
+                    for bb in payload:
+                        calc_sum ^= bb
+                    calc_sum &= 0xFF
+
+            direction = "response" if found_header[2] == ord('>') else "request"
+            cmd_name = MSP_COMMANDS_DICT.get(cmd, "Unknown Command" + str(self.buffer[:2]))
+            if (calc_sum == chksum) or (p_size == 255):
+                decoded_info = decode_msp_payload(cmd, payload, direction)
+                results.append(AnalyzerFrame(
+                    'msp_frame',
+                    self.start_time,
+                    frame.end_time,
+                    {"info": decoded_info, "cmd": cmd_name, "direction": direction}
+                ))
+            else:
+                error_str = (f"{direction} {cmd_name} CRC Error: expected=0x{calc_sum:02X}, "
+                            f"got=0x{chksum:02X}, size={p_size}")
+                results.append(AnalyzerFrame(
+                    'msp_error',
+                    self.start_time,
+                    frame.end_time,
+                    {"error": error_str}
+                ))
             del self.buffer[:needed_len]
             if len(self.buffer) == 0:
                 self.start_time = None
             else:
                 self.start_time = frame.end_time
+
         return results
