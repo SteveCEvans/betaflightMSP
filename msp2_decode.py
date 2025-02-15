@@ -22,12 +22,10 @@ def decode_no_fields(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_BETAFLIGHT_BIND
-# Betaflight: src/main/msp/msp2_betaflight.c:50
 # ---------------------------
 
 # ---------------------------
 # MSP2_GET_TEXT
-# Betaflight: src/main/msp/msp2_common.c:200
 # ---------------------------
 def decode_msp2_get_text_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -43,8 +41,6 @@ def decode_msp2_get_text_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_SENSOR_CONFIG_ACTIVE
-# Command: src/main/msp/msp_protocol_v2_betaflight.h
-# Implementation: src/main/msp/msp.c:2100 (processOutCommand)
 # ---------------------------
 def decode_msp2_sensor_config_active_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -59,7 +55,6 @@ def decode_msp2_sensor_config_active_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_GET_VTX_DEVICE_STATUS
-# Betaflight: src/main/msp/msp2_vtx.c:50
 # ---------------------------
 def decode_msp2_get_vtx_device_status_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -96,7 +91,6 @@ def decode_msp2_get_vtx_device_status_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_COMMON_SERIAL_CONFIG
-# Betaflight: src/main/msp/msp2_common.c:400
 # ---------------------------
 def decode_msp2_common_serial_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -276,8 +270,6 @@ def decode_msp2_common_set_serial_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_SENSOR_GPS
-# Command: src/main/msp/msp_protocol_v2_common.h
-# Implementation: src/main/msp/msp.c:1500 (processOutCommand)
 # ---------------------------
 def decode_msp2_sensor_gps_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -306,24 +298,30 @@ def decode_msp2_sensor_gps_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_SENSOR_RANGEFINDER_LIDARMT
-# Command: src/main/msp/msp_protocol_v2_common.h
-# Implementation: src/main/msp/msp.c:1600 (processOutCommand)
 # ---------------------------
 def decode_msp2_sensor_rangefinder_lidarmt_request(payload: bytes) -> str:
-    if len(payload) == 0:
-        return "Empty LIDARMT Rangefinder Request"
-    return MSG_INVALID_PAYLOAD
+    """
+    Decodes rangefinder LIDAR MT data sent TO the flight controller.
+    Format:
+    typedef struct __attribute__((packed)) {
+        uint8_t quality;    // [0;255]
+        int32_t distanceMm; // Negative value for out of range
+    } mspSensorRangefinderLidarMtDataMessage_t;
+    """
+    if len(payload) < 5:  # 1 byte quality + 4 bytes distance
+        return MSG_INVALID_PAYLOAD
+
+    quality = payload[0]
+    distance_mm = int.from_bytes(payload[1:5], 'little', signed=True)
+
+    if distance_mm < 0:
+        return f"Quality: {quality/2.55:.1f}%, Distance: Out of Range"
+    return f"Quality: {quality/2.55:.1f}%, Distance: {distance_mm/1000.0:.3f}m"
 
 def decode_msp2_sensor_rangefinder_lidarmt_response(payload: bytes) -> str:
-    """
-    Decode MSP2_SENSOR_RANGEFINDER_LIDARMT response.
-    """
     if len(payload) == 0:
-        return "Empty LIDARMT Rangefinder Response"
-        
-    # Show raw response values since we don't have the protocol spec
-    values = [f"0x{b:02X}" for b in payload]
-    return f"LIDARMT Response: {' '.join(values)}"
+        return "LIDAR MT Data Acknowledged"
+    return MSG_INVALID_PAYLOAD
 
 def decode_msp2_common_esc_sensor_data_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -353,7 +351,6 @@ def decode_msp2_common_esc_sensor_data_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_COMMON_MOTOR_MIXER
-# Betaflight: src/main/msp/msp2_common.c:200
 # ---------------------------
 def decode_msp2_common_motor_mixer_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -383,7 +380,6 @@ def decode_msp2_common_motor_mixer_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_COMMON_SETTING
-# Betaflight: src/main/msp/msp2_common.c:500
 # ---------------------------
 def decode_msp2_common_setting_request(payload: bytes) -> str:
     if len(payload) >= 2:
@@ -461,7 +457,6 @@ def decode_msp2_common_pg_list_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_BETAFLIGHT_DEBUG
-# Betaflight: src/main/msp/msp2_betaflight.c:150
 # ---------------------------
 def decode_msp2_betaflight_debug_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -644,7 +639,6 @@ def decode_msp2_vtx_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_RC_COMMAND
-# Betaflight: src/main/msp/msp2_rc.c:50
 # ---------------------------
 def decode_msp2_rc_command_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -695,7 +689,6 @@ def decode_msp2_status_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_BETAFLIGHT_PID
-# Betaflight: src/main/msp/msp2_betaflight.c:300
 # ---------------------------
 def decode_msp2_betaflight_pid_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -747,7 +740,6 @@ def decode_msp2_betaflight_rates_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_BETAFLIGHT_MODE_RANGES
-# Betaflight: src/main/msp/msp2_betaflight.c:250
 # ---------------------------
 def decode_msp2_betaflight_mode_ranges_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -783,7 +775,6 @@ def decode_msp2_betaflight_rx_map_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_BETAFLIGHT_FEATURE_CONFIG
-# Betaflight: src/main/msp/msp2_betaflight.c:200
 # ---------------------------
 def decode_msp2_betaflight_feature_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -798,7 +789,6 @@ def decode_msp2_betaflight_feature_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_BETAFLIGHT_BOARD_CONFIG
-# Betaflight: src/main/msp/msp2_betaflight.c:100
 # ---------------------------
 def decode_msp2_betaflight_board_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -829,8 +819,6 @@ def decode_msp2_betaflight_board_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_SENSOR_OPTICALFLOW
-# Command: src/main/msp/msp_protocol_v2_betaflight.h
-# Implementation: src/main/msp/msp.c:1700 (processOutCommand)
 # ---------------------------
 def decode_msp2_sensor_opticalflow_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -855,7 +843,6 @@ def decode_msp2_sensor_opticalflow_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_COMMON_UID
-# Betaflight: src/main/msp/msp2_common.c:650
 # ---------------------------
 def decode_msp2_common_uid_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -870,7 +857,6 @@ def decode_msp2_common_uid_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_COMMON_SERVO
-# Betaflight: src/main/msp/msp2_common.c:450
 # ---------------------------
 def decode_msp2_common_servo_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -888,7 +874,6 @@ def decode_msp2_common_servo_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_COMMON_RC
-# Betaflight: src/main/msp/msp2_common.c:350
 # ---------------------------
 def decode_msp2_common_rc_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -919,7 +904,6 @@ def decode_msp2_common_attitude_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP2_COMMON_RAW_IMU
-# Betaflight: src/main/msp/msp2_common.c:300
 # ---------------------------
 def decode_msp2_common_raw_imu_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -981,44 +965,27 @@ def decode_msp2_common_status_response(payload: bytes) -> str:
     return MSG_INVALID_PAYLOAD
 
 def decode_msp2_sensor_opticalflow_mt_request(payload: bytes) -> str:
-    if len(payload) == 9:
-        status = payload[0]
-        motion_x = int.from_bytes(payload[1:3], 'little', signed=True)
-        motion_y = int.from_bytes(payload[3:5], 'little', signed=True)
-        surface_quality = int.from_bytes(payload[5:7], 'little')
-        return (f"Status: {status}, Motion X: {motion_x}, Motion Y: {motion_y}, "
-                f"Surface Quality: {surface_quality}")
-    return MSG_INVALID_PAYLOAD
+    """
+    Decodes optical flow MT sensor data sent TO the flight controller.
+    Format:
+    typedef struct __attribute__((packed)) {
+        uint8_t quality;    // [0;255]
+        int32_t motionX;
+        int32_t motionY;
+    } mtOpticalflowDataMessage_t;
+    """
+    if len(payload) < 9:  # 1 byte quality + 4 bytes X + 4 bytes Y
+        return MSG_INVALID_PAYLOAD
+
+    quality = payload[0]
+    motion_x = int.from_bytes(payload[1:5], 'little', signed=True)
+    motion_y = int.from_bytes(payload[5:9], 'little', signed=True)
+
+    return f"Quality: {quality/2.55:.1f}%, X Motion: {motion_x}, Y Motion: {motion_y}"
 
 def decode_msp2_sensor_opticalflow_mt_response(payload: bytes) -> str:
-    """Decode MSP2_SENSOR_OPTICALFLOW_MT response"""
-    if len(payload) >= 9:  # Payload should be exactly 9 bytes
-        status = payload[0]
-        # Status values:
-        # 0x40 = Normal operation (64)
-        # 0x41 = Warning (65)
-        # 0x42 = Error/Special (66)
-        status_desc = {
-            0x40: "Normal - No Motion",
-            0x41: "Normal - Motion Detected",
-            0x42: "Warning - High Motion"
-        }.get(status, "Unknown")
-        
-        # Extract motion data (signed 16-bit values)
-        motion_x = int.from_bytes(payload[1:3], 'little', signed=True)
-        motion_y = int.from_bytes(payload[3:5], 'little', signed=True)
-        motion_quality = payload[5]
-        raw_x = int.from_bytes(payload[6:7], 'little', signed=True)
-        raw_y = int.from_bytes(payload[7:8], 'little', signed=True)
-        raw_quality = payload[8]
-            
-        return (f"Status: 0x{status:02X} ({status_desc})\n"
-                f"Motion X: {motion_x} pixels\n"
-                f"Motion Y: {motion_y} pixels\n"
-                f"Motion Quality: {motion_quality}%\n"
-                f"Raw X: {raw_x}\n"
-                f"Raw Y: {raw_y}\n"
-                f"Raw Quality: {raw_quality}%")
+    if len(payload) == 0:
+        return "Optical Flow MT Data Acknowledged"
     return MSG_INVALID_PAYLOAD
 
 def decode_msp2_motor_output_reordering_request(payload: bytes) -> str:
@@ -1303,147 +1270,3 @@ def decode_msp2_betaflight_bind_response(payload: bytes) -> str:
         return "Bind command sent successfully"
     return MSG_INVALID_PAYLOAD
 
-# ---------------------------
-# MSP2_GET_OSD_WARNINGS
-# Betaflight: src/main/msp/msp2_osd.c:50
-# ---------------------------
-
-# ---------------------------
-# MSP2_GET_LED_STRIP_CONFIG_VALUES
-# Betaflight: src/main/msp/msp2_led.c:50
-# ---------------------------
-
-# ---------------------------
-# MSP2_SET_LED_STRIP_CONFIG_VALUES
-# Betaflight: src/main/msp/msp2_led.c:100
-# ---------------------------
-
-# ---------------------------
-# MSP2_MOTOR_OUTPUT_REORDERING
-# Betaflight: src/main/msp/msp2_motor.c:50
-# ---------------------------
-
-# ---------------------------
-# MSP2_RC_COMMAND
-# Betaflight: src/main/msp/msp2_rc.c:50
-# ---------------------------
-
-# ---------------------------
-# MSP2_SEND_DSHOT_COMMAND
-# Betaflight: src/main/msp/msp2_motor.c:100
-# ---------------------------
-
-# ---------------------------
-# MSP2_SENSOR_CONFIG_ACTIVE
-# Command: src/main/msp/msp_protocol_v2_betaflight.h
-# Implementation: src/main/msp/msp.c:2100 (processOutCommand)
-# ---------------------------
-
-# ---------------------------
-# MSP2_SENSOR_GPS
-# Command: src/main/msp/msp_protocol_v2_common.h
-# Implementation: src/main/msp/msp.c:1500 (processOutCommand)
-# ---------------------------
-
-# ---------------------------
-# MSP2_SENSOR_RANGEFINDER_LIDARMT
-# Command: src/main/msp/msp_protocol_v2_common.h
-# Implementation: src/main/msp/msp.c:1600 (processOutCommand)
-# ---------------------------
-
-# ---------------------------
-# MSP2_SENSOR_OPTICALFLOW
-# Command: src/main/msp/msp_protocol_v2_betaflight.h
-# Implementation: src/main/msp/msp.c:1700 (processOutCommand)
-# ---------------------------
-
-# ---------------------------
-# MSP2_SENSOR_OPTICALFLOW_MT
-# Command: src/main/msp/msp_protocol_v2_common.h
-# Implementation: src/main/msp/msp.c:1800 (processOutCommand)
-# ---------------------------
-
-# ---------------------------
-# MSP2_SET_LED_STRIP_CONFIG_VALUES
-# Betaflight: src/main/msp/msp2_led.c:100
-# ---------------------------
-
-# ---------------------------
-# MSP2_SET_MOTOR_OUTPUT_REORDERING
-# Betaflight: src/main/msp/msp2_motor.c:150
-# ---------------------------
-
-# ---------------------------
-# MSP2_SET_TEXT
-# Betaflight: src/main/msp/msp2_common.c:800
-# ---------------------------
-
-# ---------------------------
-# MSP2_STATUS
-# Betaflight: src/main/msp/msp2_status.c:50
-# ---------------------------
-
-# ---------------------------
-# MSP2_VTX_CONFIG
-# Betaflight: src/main/msp/msp2_vtx.c:100
-# ---------------------------
-
-# ---------------------------
-# MSP2_BETAFLIGHT_RATES
-# Betaflight: src/main/msp/msp2_betaflight.c:350
-# ---------------------------
-
-# ---------------------------
-# MSP2_BETAFLIGHT_RX_MAP
-# Betaflight: src/main/msp/msp2_betaflight.c:400
-# ---------------------------
-
-# ---------------------------
-# MSP2_BLACKBOX_CONFIG
-# Betaflight: src/main/msp/msp2_blackbox.c:50
-# ---------------------------
-
-# ---------------------------
-# MSP2_COMMON_ANALOG
-# Betaflight: src/main/msp/msp2_common.c:50
-# ---------------------------
-
-# ---------------------------
-# MSP2_COMMON_ATTITUDE
-# Betaflight: src/main/msp/msp2_common.c:100
-# ---------------------------
-
-# ---------------------------
-# MSP2_COMMON_PG_LIST
-# Betaflight: src/main/msp/msp2_common.c:250
-# ---------------------------
-
-# ---------------------------
-# MSP2_COMMON_RAW_IMU
-# Betaflight: src/main/msp/msp2_common.c:300
-# ---------------------------
-
-# ---------------------------
-# MSP2_COMMON_SERVO
-# Betaflight: src/main/msp/msp2_common.c:450
-# ---------------------------
-
-# ---------------------------
-# MSP2_COMMON_SETTING
-# Betaflight: src/main/msp/msp2_common.c:500
-# ---------------------------
-
-# ---------------------------
-# MSP2_COMMON_SETTING_INFO
-# Betaflight: src/main/msp/msp2_common.c:550
-# ---------------------------
-
-# ---------------------------
-# MSP2_COMMON_STATUS
-# Betaflight: src/main/msp/msp2_common.c:600
-# ---------------------------
-
-# ---------------------------
-# MSP2_COMMON_UID
-# Betaflight: src/main/msp/msp2_common.c:650
-# ---------------------------

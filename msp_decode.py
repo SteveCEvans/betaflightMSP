@@ -19,7 +19,6 @@ MSG_INVALID_PAYLOAD = "Invalid payload"
 
 # ---------------------------
 # MSP_API_VERSION
-# Betaflight: src/main/msp/msp.c:627
 # ---------------------------
 def decode_msp_api_version_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -34,7 +33,6 @@ def decode_msp_api_version_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_FC_VARIANT
-# Betaflight: src/main/msp/msp.c:633
 # ---------------------------
 def decode_msp_fc_variant_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -50,7 +48,6 @@ def decode_msp_fc_variant_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_FC_VERSION
-# Betaflight: src/main/msp/msp.c:637
 # ---------------------------
 def decode_msp_fc_version_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -65,7 +62,6 @@ def decode_msp_fc_version_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_BOARD_INFO
-# Betaflight: src/main/msp/msp.c:649
 # ---------------------------
 def decode_msp_board_info_request(payload: bytes) -> str:
     """
@@ -280,10 +276,6 @@ def decode_msp_board_alignment_config_request(payload: bytes) -> str:
 def decode_msp_board_alignment_config_response(payload: bytes) -> str:
     """
     Decodes the response for board alignment configuration.
-    From betaflight/src/main/msp/msp.c:
-        sbufWriteU16(dst, boardAlignment()->rollDegrees);
-        sbufWriteU16(dst, boardAlignment()->pitchDegrees);
-        sbufWriteU16(dst, boardAlignment()->yawDegrees);
     """
     if len(payload) < 6:  # 3 x uint16_t
         return MSG_INVALID_PAYLOAD
@@ -296,7 +288,6 @@ def decode_msp_board_alignment_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_RC_TUNING
-# Betaflight: src/main/msp/msp.c:1036
 # ---------------------------
 def decode_msp_rc_tuning_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -331,7 +322,6 @@ def decode_msp_rc_tuning_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_ANALOG
-# Betaflight: src/main/msp/msp.c:1032
 # ---------------------------
 def decode_msp_analog_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -364,25 +354,6 @@ def decode_msp_led_strip_modecolor_request(payload: bytes) -> str:
 def decode_msp_led_strip_modecolor_response(payload: bytes) -> str:
     """
     Decodes the LED strip mode color configuration.
-    Format from Betaflight src/main/msp/msp.c:
-    First part: Mode/Direction colors
-    for (int i = 0; i < LED_MODE_COUNT; i++) {
-        for (int j = 0; j < LED_DIRECTION_COUNT; j++) {
-            uint8_t mode;       // Mode index (i)
-            uint8_t direction;  // Direction index (j)
-            uint8_t color;      // Color for this mode/direction
-        }
-    }
-    Second part: Special colors
-    for (int j = 0; j < LED_SPECIAL_COLOR_COUNT; j++) {
-        uint8_t mode;       // LED_MODE_COUNT
-        uint8_t special;    // Special color index (j)
-        uint8_t color;      // Color for this special mode
-    }
-    Final part: AUX channel
-        uint8_t aux_mode;   // LED_AUX_CHANNEL
-        uint8_t zero;       // Always 0
-        uint8_t aux_channel; // AUX channel number
     """
     if len(payload) < 3:  # Need at least one complete entry
         return MSG_INVALID_PAYLOAD
@@ -489,7 +460,6 @@ def decode_msp_led_strip_modecolor_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_BATTERY_STATE
-# Betaflight: src/main/msp/msp.c:1052
 # ---------------------------
 def decode_msp_battery_state_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -512,7 +482,6 @@ def decode_msp_battery_state_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_SET_VTX_CONFIG
-# Betaflight: src/main/msp/msp.c:1056
 # ---------------------------
 def decode_msp_set_vtx_config_request(payload: bytes) -> str:
     try:
@@ -528,7 +497,6 @@ def decode_msp_set_vtx_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_VTX_CONFIG
-# Betaflight: src/main/msp/msp.c:1060
 # ---------------------------
 def decode_msp_vtx_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -591,7 +559,6 @@ def decode_msp_vtx_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_EEPROM_WRITE
-# Betaflight: src/main/msp/msp.c:1064
 # ---------------------------
 def decode_msp_eeprom_write_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -605,7 +572,6 @@ def decode_msp_eeprom_write_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_BAT_SETTING
-# Betaflight: src/main/msp/msp.c:1068
 # ---------------------------
 def decode_msp_bat_setting_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -621,7 +587,6 @@ def decode_msp_bat_setting_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_SET_BAT_SETTING
-# Betaflight: src/main/msp/msp.c:1072
 # ---------------------------
 def decode_msp_set_bat_setting_request(payload: bytes) -> str:
     try:
@@ -670,7 +635,6 @@ def decode_msp_pid_controller_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_REBOOT
-# Betaflight: src/main/msp/msp.c:1048
 # ---------------------------
 def decode_msp_reboot_request(payload: bytes) -> str:
     """
@@ -898,7 +862,6 @@ def decode_msp_raw_imu_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_RC
-# Betaflight: src/main/msp/msp.c:1016
 # ---------------------------
 def decode_msp_rc_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -916,7 +879,6 @@ def decode_msp_rc_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_ATTITUDE
-# Betaflight: src/main/msp/msp.c:1020
 # ---------------------------
 def decode_msp_attitude_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -933,7 +895,6 @@ def decode_msp_attitude_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_ALTITUDE
-# Betaflight: src/main/msp/msp.c:1024
 # ---------------------------
 def decode_msp_altitude_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -949,7 +910,6 @@ def decode_msp_altitude_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_BOXNAMES
-# Betaflight: src/main/msp/msp.c:1040
 # ---------------------------
 def decode_msp_boxnames_request(payload: bytes) -> str:
     """
@@ -987,7 +947,6 @@ def decode_msp_boxnames_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_BOXIDS
-# Betaflight: src/main/msp/msp.c:1044
 # ---------------------------
 def decode_msp_boxids_request(payload: bytes) -> str:
     """
@@ -1125,14 +1084,6 @@ def decode_msp_status_ex_request(payload: bytes) -> str:
 def decode_msp_status_ex_response(payload: bytes) -> str:
     """
     Decodes the response for extended status data.
-    From betaflight/src/main/msp/msp.c:
-        sbufWriteU16(dst, getTaskDeltaTimeUs(TASK_PID));
-        sbufWriteU16(dst, i2cGetErrorCounter());
-        sbufWriteU16(dst, sensors(...));  // Sensor flags
-        sbufWriteData(dst, &flightModeFlags, 4);  // 32-bit flags
-        sbufWriteU8(dst, getCurrentPidProfileIndex());
-        sbufWriteU16(dst, constrain(getAverageSystemLoadPercent(), 0, LOAD_PERCENTAGE_ONE));
-        sbufWriteU8(dst, PID_PROFILE_COUNT);
     """
     if len(payload) < 13:  # Minimum required bytes
         return MSG_INVALID_PAYLOAD
@@ -1178,7 +1129,6 @@ def decode_msp_status_ex_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_DISPLAYPORT
-# Betaflight: src/main/msp/msp.c:1076
 # ---------------------------
 
 DISPLAYPORT_SUBCMD_NAMES = {
@@ -1225,7 +1175,6 @@ def decode_msp_displayport_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_BEEPER_CONFIG
-# Betaflight: src/main/msp/msp.c:1080
 # ---------------------------
 def decode_msp_beeper_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1235,10 +1184,6 @@ def decode_msp_beeper_config_request(payload: bytes) -> str:
 def decode_msp_beeper_config_response(payload: bytes) -> str:
     """
     Decodes the response for beeper configuration.
-    From betaflight/src/main/msp/msp.c:
-        sbufWriteU32(dst, beeperConfig()->beeper_off_flags);
-        sbufWriteU8(dst, beeperConfig()->dshotBeaconTone);
-        sbufWriteU32(dst, beeperConfig()->dshotBeaconOffFlags);
     """
     if len(payload) < 9:  # uint32 + uint8 + uint32
         return MSG_INVALID_PAYLOAD
@@ -1253,7 +1198,6 @@ def decode_msp_beeper_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_MOTOR_3D_CONFIG
-# Betaflight: src/main/msp/msp.c:1084
 # ---------------------------
 def decode_msp_motor_3d_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1282,7 +1226,6 @@ def decode_msp_motor_3d_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_MIXER_CONFIG
-# Betaflight: src/main/msp/msp.c:1088
 # ---------------------------
 def decode_msp_mixer_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1339,7 +1282,6 @@ def decode_msp_mixer_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_MOTOR_CONFIG
-# Betaflight: src/main/msp/msp.c:1092
 # ---------------------------
 def decode_msp_motor_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1348,18 +1290,6 @@ def decode_msp_motor_config_request(payload: bytes) -> str:
 
 def decode_msp_motor_config_response(payload: bytes) -> str:
     """Decode MSP_MOTOR_CONFIG response.
-    Protocol definition from betaflight/src/main/msp/msp.c:
-    
-    case MSP_MOTOR_CONFIG:
-        sbufWriteU16(dst, 0); // was minthrottle until after 4.5
-        sbufWriteU16(dst, motorConfig()->maxthrottle);
-        sbufWriteU16(dst, motorConfig()->mincommand);
-        
-        // API 1.42
-        sbufWriteU8(dst, getMotorCount());
-        sbufWriteU8(dst, motorConfig()->motorPoleCount);
-        sbufWriteU8(dst, useDshotTelemetry);
-        sbufWriteU8(dst, featureIsEnabled(FEATURE_ESC_SENSOR));
     """
     if len(payload) >= 6:  # Basic config (3 x uint16_t)
         min_throttle = int.from_bytes(payload[0:2], 'little')  # Always 0 after 4.5
@@ -1387,7 +1317,6 @@ def decode_msp_motor_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_MOTOR_TELEMETRY
-# Betaflight: src/main/msp/msp.c:1096
 # ---------------------------
 def decode_msp_motor_telemetry_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1537,7 +1466,6 @@ def decode_msp2_send_dshot_command_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_MOTOR
-# Betaflight: src/main/msp/msp.c:1012
 # ---------------------------
 def decode_msp_motor_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1555,7 +1483,6 @@ def decode_msp_motor_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_UID
-# Betaflight: src/main/msp/msp.c:772
 # ---------------------------
 def decode_msp_uid_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1565,10 +1492,6 @@ def decode_msp_uid_request(payload: bytes) -> str:
 def decode_msp_uid_response(payload: bytes) -> str:
     """
     Decodes the device unique ID response.
-    From betaflight/src/main/msp/msp.c:
-        sbufWriteU32(dst, U_ID_0);
-        sbufWriteU32(dst, U_ID_1);
-        sbufWriteU32(dst, U_ID_2);
     """
     if len(payload) >= 12:  # 3 x uint32_t
         uid0 = int.from_bytes(payload[0:4], 'little')
@@ -1741,11 +1664,6 @@ def decode_msp_blackbox_config_response(payload: bytes) -> str:
 def decode_msp_set_rtc_request(payload: bytes) -> str:
     """
     Decodes the request to set RTC time.
-    From betaflight/src/main/msp/msp.c:
-        int32_t secs = (int32_t)sbufReadU32(src);
-        uint16_t millis = sbufReadU16(src);
-        rtcTime_t t = rtcTimeMake(secs, millis);
-        rtcSet(&t);
     """
     if len(payload) >= 6:  # uint32_t + uint16_t
         secs = int.from_bytes(payload[0:4], 'little')
@@ -1765,7 +1683,6 @@ def decode_msp_set_rtc_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_ARMING_CONFIG
-# Betaflight: src/main/msp/msp.c:1000
 # ---------------------------
 def decode_msp_arming_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1794,7 +1711,6 @@ def decode_msp_arming_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_RC_DEADBAND
-# Betaflight: src/main/msp/msp.c:1100
 # ---------------------------
 def decode_msp_rc_deadband_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1826,7 +1742,6 @@ def decode_msp_rc_deadband_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_SENSOR_CONFIG
-# Betaflight: src/main/msp/msp.c:1200
 # ---------------------------
 def decode_msp_sensor_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1885,7 +1800,6 @@ def decode_msp_sensor_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_SENSOR_ALIGNMENT
-# Betaflight: src/main/msp/msp.c:1300
 # ---------------------------
 def decode_msp_sensor_alignment_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -1930,7 +1844,6 @@ def decode_msp_sensor_alignment_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_RX_CONFIG
-# Betaflight: src/main/msp/msp.c:1000
 # ---------------------------
 def decode_msp_rx_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2054,7 +1967,6 @@ def decode_msp_rx_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_ADVANCED_CONFIG
-# Betaflight: src/main/msp/msp.c:1100
 # ---------------------------
 def decode_msp_advanced_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2146,7 +2058,6 @@ def decode_msp_advanced_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_COMPASS_CONFIG
-# Betaflight: src/main/msp/msp.c:1200
 # ---------------------------
 def decode_msp_compass_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2186,7 +2097,6 @@ def decode_msp_compass_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_VOLTAGE_METERS
-# Betaflight: src/main/msp/msp.c:1300
 # ---------------------------
 def decode_msp_voltage_meters_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2218,7 +2128,6 @@ def decode_msp_voltage_meters_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_CURRENT_METER_CONFIG
-# Betaflight: src/main/msp/msp.c:1400
 # ---------------------------
 def decode_msp_current_meter_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2257,7 +2166,6 @@ def decode_msp_current_meter_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_VOLTAGE_METER_CONFIG
-# Betaflight: src/main/msp/msp.c:1500
 # ---------------------------
 def decode_msp_voltage_meter_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2295,7 +2203,6 @@ def decode_msp_voltage_meter_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_FAILSAFE_CONFIG
-# Betaflight: src/main/msp/msp.c:1600
 # ---------------------------
 def decode_msp_failsafe_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2342,7 +2249,6 @@ def decode_msp_failsafe_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_RXFAIL_CONFIG
-# Betaflight: src/main/msp/msp.c:1700
 # ---------------------------
 def decode_msp_rxfail_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2384,7 +2290,6 @@ def decode_msp_rxfail_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_GPS_RESCUE
-# Betaflight: src/main/msp/msp.c:1800
 # ---------------------------
 def decode_msp_gps_rescue_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2438,7 +2343,6 @@ def decode_msp_gps_rescue_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_MODE_RANGES
-# Betaflight: src/main/msp/msp.c:1900
 # ---------------------------
 def decode_msp_mode_ranges_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2518,7 +2422,6 @@ def decode_msp_mode_ranges_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_CURRENT_METERS
-# Betaflight: src/main/msp/msp.c:1300
 # ---------------------------
 def decode_msp_current_meters_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2552,7 +2455,6 @@ def decode_msp_current_meters_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_RSSI_CONFIG
-# Betaflight: src/main/msp/msp.c:1659
 # ---------------------------
 def decode_msp_rssi_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2593,7 +2495,6 @@ def decode_msp_rssi_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_GPS_CONFIG
-# Betaflight: src/main/msp/msp.c:1487
 # ---------------------------
 def decode_msp_gps_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2645,7 +2546,6 @@ def decode_msp_gps_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_PIDNAMES
-# Betaflight: src/main/msp/msp.c:1385
 # ---------------------------
 def decode_msp_pidnames_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2666,7 +2566,6 @@ def decode_msp_pidnames_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_PID
-# Betaflight: src/main/msp/msp.c:1377
 # ---------------------------
 def decode_msp_pid_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2706,7 +2605,6 @@ def decode_msp_pid_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_PID_ADVANCED
-# Betaflight: src/main/msp/msp.c:1960
 # ---------------------------
 def decode_msp_pid_advanced_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2769,7 +2667,6 @@ def decode_msp_pid_advanced_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_FILTER_CONFIG
-# Betaflight: src/main/msp/msp.c:1891
 # ---------------------------
 def decode_msp_filter_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2825,7 +2722,6 @@ def decode_msp_filter_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_LED_COLORS
-# Betaflight: src/main/msp/msp.c:1200
 # ---------------------------
 def decode_msp_led_colors_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2859,7 +2755,6 @@ def decode_msp_led_colors_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_ADJUSTMENT_RANGES
-# Betaflight: src/main/msp/msp.c:1300
 # ---------------------------
 def decode_msp_adjustment_ranges_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -2924,7 +2819,6 @@ def decode_msp_adjustment_ranges_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_CF_SERIAL_CONFIG
-# Betaflight: src/main/msp/msp.c:1400
 # ---------------------------
 def decode_msp_cf_serial_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3012,7 +2906,6 @@ def decode_msp_cf_serial_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_RX_MAP
-# Betaflight: src/main/msp/msp.c:1500
 # ---------------------------
 def decode_msp_rx_map_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3041,7 +2934,6 @@ def decode_msp_rx_map_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_BF_CONFIG
-# Betaflight: src/main/msp/msp.c:1600
 # ---------------------------
 def decode_msp_bf_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3160,7 +3052,6 @@ def decode_msp_bf_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_LOOP_TIME
-# Betaflight: src/main/msp/msp.c:1700
 # ---------------------------
 def decode_msp_loop_time_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3182,7 +3073,6 @@ def decode_msp_loop_time_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_TRANSPONDER_CONFIG
-# Betaflight: src/main/msp/msp.c:1800
 # ---------------------------
 def decode_msp_transponder_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3216,7 +3106,6 @@ def decode_msp_transponder_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_OSD_CONFIG
-# Betaflight: src/main/msp/msp.c:1900
 # ---------------------------
 def decode_msp_osd_config_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3281,7 +3170,6 @@ def decode_msp_osd_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_CAMERA_CONTROL
-# Betaflight: src/main/msp/msp.c:2000
 # ---------------------------
 def decode_msp_camera_control_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3316,7 +3204,6 @@ def decode_msp_camera_control_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_SIMPLIFIED_TUNING
-# Betaflight: src/main/msp/msp.c:1400
 # ---------------------------
 def decode_msp_simplified_tuning_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3384,7 +3271,6 @@ def decode_msp_simplified_tuning_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_SET_SIMPLIFIED_TUNING
-# Betaflight: src/main/msp/msp.c:1450
 # ---------------------------
 def decode_msp_set_simplified_tuning_request(payload: bytes) -> str:
     if len(payload) < 13:
@@ -3403,7 +3289,6 @@ def decode_msp_set_simplified_tuning_request(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_VALIDATE_SIMPLIFIED_TUNING
-# Betaflight: src/main/msp/msp.c:1650
 # ---------------------------
 def decode_msp_validate_simplified_tuning_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3747,7 +3632,6 @@ def decode_msp_led_strip_config_response(payload: bytes) -> str:
 
 # ---------------------------
 # MSP_DEBUG
-# Betaflight: src/main/msp/msp.c
 # ---------------------------
 def decode_msp_debug_request(payload: bytes) -> str:
     if len(payload) == 0:
@@ -3768,3 +3652,30 @@ def decode_msp_debug_response(payload: bytes) -> str:
         debug_values.append(value)
 
     return f"Debug Values: {debug_values[0]}, {debug_values[1]}, {debug_values[2]}, {debug_values[3]}"
+
+# ---------------------------
+# MSP2_SENSOR_OPTICALFLOW_MT
+# ---------------------------
+def decode_msp2_sensor_opticalflow_mt_request(payload: bytes) -> str:
+    if len(payload) == 0:
+        return "Request Optical Flow MT Data"
+    return MSG_INVALID_PAYLOAD
+
+def decode_msp2_sensor_opticalflow_mt_response(payload: bytes) -> str:
+    """
+    Decodes optical flow MT sensor data.
+    Format:
+    typedef struct __attribute__((packed)) {
+        uint8_t quality;    // [0;255]
+        int32_t motionX;
+        int32_t motionY;
+    } mtOpticalflowDataMessage_t;
+    """
+    if len(payload) < 9:  # 1 byte quality + 4 bytes X + 4 bytes Y
+        return MSG_INVALID_PAYLOAD
+
+    quality = payload[0]
+    motion_x = int.from_bytes(payload[1:5], 'little', signed=True)
+    motion_y = int.from_bytes(payload[5:9], 'little', signed=True)
+
+    return f"Quality: {quality/2.55:.1f}%, X Motion: {motion_x}, Y Motion: {motion_y}"
