@@ -624,14 +624,17 @@ def decode_msp_pid_controller_request(payload: bytes) -> str:
     return MSG_INVALID_PAYLOAD
 
 def decode_msp_pid_controller_response(payload: bytes) -> str:
-    if len(payload) < 8:
+    """
+    Decodes the PID controller response.
+    
+    Payload format:
+    uint8_t pid_controller;  // PID controller type (always BETAFLIGHT)
+    """
+    if len(payload) < 1:
         return MSG_INVALID_PAYLOAD
 
-    roll_pid = struct.unpack('<fff', payload[0:12])  # Roll PID values
-    pitch_pid = struct.unpack('<fff', payload[12:24])  # Pitch PID values
-    yaw_pid = struct.unpack('<fff', payload[24:36])  # Yaw PID values
-
-    return (f"PID Controller: Roll PID={roll_pid}, Pitch PID={pitch_pid}, Yaw PID={yaw_pid}")
+    pid_controller = payload[0]
+    return f"PID Controller: {pid_controller}"
 
 # ---------------------------
 # MSP_REBOOT
@@ -1126,6 +1129,52 @@ def decode_msp_status_ex_response(payload: bytes) -> str:
             f"Flight Modes: {', '.join(modes)}, "
             f"PID Profile: {pid_profile}, "
             f"System Load: {system_load/10.0}%")
+
+# ---------------------------
+# MSP_OSD_CANVAS
+# ---------------------------
+def decode_msp_osd_canvas_request(payload: bytes) -> str:
+    if len(payload) == 0:
+        return "Request OSD Canvas Dimensions"
+    return MSG_INVALID_PAYLOAD
+
+def decode_msp_osd_canvas_response(payload: bytes) -> str:
+    """
+    Decodes the OSD canvas dimensions response.
+    
+    Payload format:
+    uint8_t canvas_cols;  // Number of columns in OSD canvas
+    uint8_t canvas_rows;  // Number of rows in OSD canvas
+    """
+    if len(payload) < 2:
+        return MSG_INVALID_PAYLOAD
+
+    cols = payload[0]
+    rows = payload[1]
+    return f"OSD Canvas: {cols}x{rows}"
+
+# ---------------------------
+# MSP_SET_OSD_CANVAS
+# ---------------------------
+def decode_msp_set_osd_canvas_request(payload: bytes) -> str:
+    """
+    Decodes the request to set OSD canvas dimensions.
+    
+    Payload format:
+    uint8_t canvas_cols;  // Number of columns in OSD canvas
+    uint8_t canvas_rows;  // Number of rows in OSD canvas
+    """
+    if len(payload) < 2:
+        return MSG_INVALID_PAYLOAD
+
+    cols = payload[0]
+    rows = payload[1]
+    return f"Set OSD Canvas: {cols}x{rows}"
+
+def decode_msp_set_osd_canvas_response(payload: bytes) -> str:
+    if len(payload) == 0:
+        return "OSD Canvas dimensions set successfully"
+    return MSG_INVALID_PAYLOAD
 
 # ---------------------------
 # MSP_DISPLAYPORT
@@ -1740,63 +1789,76 @@ def decode_msp_rc_deadband_response(payload: bytes) -> str:
             f"Alt Hold Deadband: {alt_hold_deadband}, "
             f"3D Throttle Deadband: {deadband3d_throttle}")
 
+# Hardware type constants
+ACC_NONE = 1
+BARO_NONE = 1
+MAG_NONE = 1
+RANGEFINDER_NONE = 0
+OPTICALFLOW_NONE = 0
+
 # ---------------------------
 # MSP_SENSOR_CONFIG
 # ---------------------------
 def decode_msp_sensor_config_request(payload: bytes) -> str:
     if len(payload) == 0:
-        return "Request Sensor Configuration"
+        return "Request for Sensor Hardware Configuration"
     return MSG_INVALID_PAYLOAD
 
 def decode_msp_sensor_config_response(payload: bytes) -> str:
     """
-    Decodes the sensor configuration response.
+    Decodes the sensor hardware configuration response.
     
-    Payload format from betaflight/src/main/sensors/sensors.h:
+    Payload format:
     uint8_t acc_hardware;           // Accelerometer hardware type
     uint8_t baro_hardware;         // Barometer hardware type
     uint8_t mag_hardware;          // Magnetometer hardware type
     uint8_t rangefinder_hardware;  // Rangefinder hardware type
-    uint8_t pitot_hardware;        // Pitot tube hardware type
-    uint8_t optical_flow_hardware; // Optical flow sensor hardware type
+    uint8_t opticalflow_hardware; // Optical flow sensor hardware type
     """
-    if len(payload) < 6:
+    if len(payload) < 5:  # Need all 5 sensor types
         return MSG_INVALID_PAYLOAD
 
-    # Hardware type names
-    hardware_types = {
-        0: "NONE",
-        1: "AUTO",
-        2: "ADXL345",
-        3: "MPU6050",
-        4: "MMA8452",
-        5: "BMA280",
-        6: "LSM303DLHC",
-        7: "MPU6000",
-        8: "MPU6500",
-        9: "MPU9250",
-        10: "ICM20601",
-        11: "ICM20602",
-        12: "ICM20608G",
-        13: "ICM20649",
-        14: "ICM20689",
-        15: "BMI160",
-        16: "FAKE"
+    # For ACC/BARO/MAG: 0=present 1=none
+    # For RANGEFINDER/OPTICALFLOW: 0=none 1=present
+    # Any other value indicates device instance number
+    acc_types = {
+        0: "PRESENT",
+        ACC_NONE: "NONE"
     }
 
-    acc_hardware = hardware_types.get(payload[0], f"UNKNOWN({payload[0]})")
-    baro_hardware = hardware_types.get(payload[1], f"UNKNOWN({payload[1]})")
-    mag_hardware = hardware_types.get(payload[2], f"UNKNOWN({payload[2]})")
-    rangefinder_hardware = hardware_types.get(payload[3], f"UNKNOWN({payload[3]})")
-    pitot_hardware = hardware_types.get(payload[4], f"UNKNOWN({payload[4]})")
-    optical_flow_hardware = hardware_types.get(payload[5], f"UNKNOWN({payload[5]})")
+    baro_types = {
+        0: "PRESENT",
+        BARO_NONE: "NONE"
+    }
 
-    return (f"Accelerometer: {acc_hardware}, "
-            f"Barometer: {baro_hardware}, "
-            f"Magnetometer: {mag_hardware}, "
-            f"Rangefinder: {rangefinder_hardware}, "
-            f"Pitot: {pitot_hardware}, "
-            f"Optical Flow: {optical_flow_hardware}")
+    mag_types = {
+        0: "PRESENT",
+        MAG_NONE: "NONE"
+    }
+
+    rangefinder_types = {
+        RANGEFINDER_NONE: "NONE",
+        1: "PRESENT"
+    }
+
+    opticalflow_types = {
+        OPTICALFLOW_NONE: "NONE",
+        1: "PRESENT"
+    }
+
+    acc_hw = payload[0]
+    baro_hw = payload[1]
+    mag_hw = payload[2]
+    rangefinder_hw = payload[3]
+    opticalflow_hw = payload[4]
+
+    # Helper function to get hardware name
+    def get_hw_name(hw_value, type_dict):
+        if hw_value in type_dict:
+            return type_dict[hw_value]
+        return f"Device #{hw_value-1}"  # Subtract 1 since device instances start at 2
+
+    return f"Sensor Hardware Configuration: acc: {get_hw_name(acc_hw, acc_types)}, baro: {get_hw_name(baro_hw, baro_types)}, mag: {get_hw_name(mag_hw, mag_types)}, rangefinder: {get_hw_name(rangefinder_hw, rangefinder_types)}, optflow: {get_hw_name(opticalflow_hw, opticalflow_types)}"
 
 # ---------------------------
 # MSP_SENSOR_ALIGNMENT
@@ -2465,33 +2527,14 @@ def decode_msp_rssi_config_response(payload: bytes) -> str:
     """
     Decodes the RSSI configuration response.
     
-    Payload format from betaflight/src/main/rx/rx.h:
-    uint8_t channel;           // RSSI ADC channel
-    uint8_t scale;            // RSSI scale factor
-    uint8_t offset;           // RSSI offset
-    uint8_t type;            // RSSI type (ADC, PROTOCOL, etc)
+    Payload format:
+    uint8_t rssi_channel;  // RSSI channel
     """
-    if len(payload) < 4:
+    if len(payload) < 1:
         return MSG_INVALID_PAYLOAD
 
-    channel = payload[0]
-    scale = payload[1]
-    offset = payload[2]
-    rssi_type = payload[3]
-
-    # RSSI type names
-    types = {
-        0: "NONE",
-        1: "ADC",
-        2: "PROTOCOL",
-        3: "RX_CHANNEL"
-    }
-
-    type_name = types.get(rssi_type, f"UNKNOWN({rssi_type})")
-    return (f"Channel: {channel}, "
-            f"Scale: {scale}, "
-            f"Offset: {offset}, "
-            f"Type: {type_name}")
+    rssi_channel = payload[0]
+    return f"RSSI Channel: {rssi_channel}"
 
 # ---------------------------
 # MSP_GPS_CONFIG
@@ -2581,21 +2624,14 @@ def decode_msp_pid_response(payload: bytes) -> str:
         uint8_t P;            // P term
         uint8_t I;            // I term
         uint8_t D;            // D term
-    } pids[9];               // ROLL, PITCH, YAW, ALT, POS, POSR, NAVR, LEVEL, MAG
+    } pids[3];               // ROLL, PITCH, YAW
     """
-    if len(payload) < 27:  # 9 PIDs * 3 values
+    if len(payload) < 9:  # 3 PIDs * 3 values
         return MSG_INVALID_PAYLOAD
 
-    pid_names = [
-        "ROLL", "PITCH", "YAW",
-        "ALT", "POS", "POSR",
-        "NAVR", "LEVEL", "MAG"
-    ]
-
+    pid_names = ["ROLL", "PITCH", "YAW"]
     pids = []
-    for i in range(0, min(len(payload), 27), 3):
-        if i//3 >= len(pid_names):
-            break
+    for i in range(0, min(len(payload), 9), 3):
         p = payload[i]
         i_term = payload[i+1]
         d = payload[i+2]
@@ -2614,56 +2650,91 @@ def decode_msp_pid_advanced_request(payload: bytes) -> str:
 def decode_msp_pid_advanced_response(payload: bytes) -> str:
     """
     Decodes the advanced PID settings response.
-    
-    Payload format from betaflight/src/main/fc/controlrate_profile.h:
-    uint16_t rollPitchItermIgnoreRate;  // Iterm ignore rate for roll/pitch
-    uint16_t yawItermIgnoreRate;        // Iterm ignore rate for yaw
-    uint16_t yaw_p_limit;               // Yaw P limit
-    uint8_t deltaMethod;                // Delta calculation method
-    uint8_t vbatPidCompensation;        // VBAT PID compensation
-    uint8_t setpointRelaxRatio;         // Setpoint relax ratio
-    uint8_t dtermSetpointWeight;        // Dterm setpoint weight
-    uint8_t levelAngleLimit;            // Level mode angle limit
-    uint8_t levelSensitivity;           // Level mode sensitivity
+    Payload format from betaflight/src/main/fc/controlrate_profile.h
     """
-    if len(payload) < 11:
+    if len(payload) < 47:  # Minimum size for basic fields
         return MSG_INVALID_PAYLOAD
 
     index = 0
-    roll_pitch_iterm_ignore = int.from_bytes(payload[index:index+2], 'little')
+    
+    # Skip reserved fields
+    index += 9  # Skip first 9 reserved bytes
+    
+    feedforward_transition = payload[index]
+    index += 1
+    index += 3  # Skip 3 more reserved bytes
+    
+    rate_accel_limit = int.from_bytes(payload[index:index+2], 'little')
     index += 2
-    yaw_iterm_ignore = int.from_bytes(payload[index:index+2], 'little')
+    yaw_rate_accel_limit = int.from_bytes(payload[index:index+2], 'little')
     index += 2
-    yaw_p_limit = int.from_bytes(payload[index:index+2], 'little')
+    angle_limit = payload[index]
+    index += 1
+    index += 3  # Skip 3 more reserved bytes
+    
+    anti_gravity_gain = int.from_bytes(payload[index:index+2], 'little')
     index += 2
-    delta_method = payload[index]
+    index += 2  # Skip 2 more reserved bytes
+    
+    iterm_rotation = payload[index]
     index += 1
-    vbat_compensation = payload[index]
+    index += 1  # Skip 1 more reserved byte
+    
+    iterm_relax = payload[index]
     index += 1
-    setpoint_relax = payload[index]
+    iterm_relax_type = payload[index]
     index += 1
-    dterm_setpoint = payload[index]
+    abs_control_gain = payload[index]
     index += 1
-    level_angle_limit = payload[index]
+    throttle_boost = payload[index]
     index += 1
-    level_sensitivity = payload[index]
+    acro_trainer_angle_limit = payload[index]
+    index += 1
+    
+    pid_roll_f = int.from_bytes(payload[index:index+2], 'little')
+    index += 2
+    pid_pitch_f = int.from_bytes(payload[index:index+2], 'little')
+    index += 2
+    pid_yaw_f = int.from_bytes(payload[index:index+2], 'little')
+    index += 2
+    index += 1  # Skip 1 more reserved byte
+    
+    d_max_roll = payload[index]
+    index += 1
+    d_max_pitch = payload[index]
+    index += 1
+    d_max_yaw = payload[index]
+    index += 1
+    d_max_gain = payload[index]
+    index += 1
+    d_max_advance = payload[index]
+    index += 1
+    
+    use_integrated_yaw = payload[index]
+    index += 1
+    integrated_yaw_relax = payload[index]
+    index += 1
+    
+    iterm_relax_cutoff = payload[index]
+    index += 1
+    
+    motor_output_limit = payload[index]
+    index += 1
+    auto_profile_cell_count = payload[index]
+    index += 1
+    dyn_idle_min_rpm = payload[index]
+    index += 1
 
-    # Delta method names
-    methods = {
-        0: "ERROR",
-        1: "MEASUREMENT"
-    }
-    method_name = methods.get(delta_method, f"UNKNOWN({delta_method})")
-
-    return (f"Roll/Pitch Iterm Ignore: {roll_pitch_iterm_ignore}, "
-            f"Yaw Iterm Ignore: {yaw_iterm_ignore}, "
-            f"Yaw P Limit: {yaw_p_limit}, "
-            f"Delta Method: {method_name}, "
-            f"VBAT Compensation: {'On' if vbat_compensation else 'Off'}, "
-            f"Setpoint Relax: {setpoint_relax}, "
-            f"Dterm Setpoint: {dterm_setpoint}, "
-            f"Level Angle Limit: {level_angle_limit}°, "
-            f"Level Sensitivity: {level_sensitivity}")
+    # Build concise output
+    return (f"Rate: accel={rate_accel_limit} yaw={yaw_rate_accel_limit} angle={angle_limit}, "
+            f"AG: gain={anti_gravity_gain}, "
+            f"ITerm: rot={iterm_rotation} relax={iterm_relax}/{iterm_relax_type} cut={iterm_relax_cutoff}, "
+            f"Ctrl: abs={abs_control_gain} boost={throttle_boost} acro={acro_trainer_angle_limit}, "
+            f"FF: trans={feedforward_transition}, "
+            f"PID-F: R={pid_roll_f} P={pid_pitch_f} Y={pid_yaw_f}, "
+            f"DMax: R={d_max_roll} P={d_max_pitch} Y={d_max_yaw} g={d_max_gain} adv={d_max_advance}, "
+            f"Yaw: int={use_integrated_yaw} relax={integrated_yaw_relax}, "
+            f"Out: lim={motor_output_limit} cells={auto_profile_cell_count} rpm={dyn_idle_min_rpm}")
 
 # ---------------------------
 # MSP_FILTER_CONFIG
@@ -2709,7 +2780,7 @@ def decode_msp_filter_config_response(payload: bytes) -> str:
     gyro_lowpass2 = int.from_bytes(payload[index:index+2], 'little')
     index += 2
     debug_mode = payload[index]
-
+    
     return (f"Gyro Lowpass: {gyro_lowpass}Hz, "
             f"Dterm Lowpass: {dterm_lowpass}Hz, "
             f"Yaw Lowpass: {yaw_lowpass}Hz, "
@@ -2719,7 +2790,7 @@ def decode_msp_filter_config_response(payload: bytes) -> str:
             f"Dterm Notch Cutoff: {dterm_notch_cutoff}Hz, "
             f"Gyro Lowpass2: {gyro_lowpass2}Hz, "
             f"Debug Mode: {debug_mode}")
-
+    
 # ---------------------------
 # MSP_LED_COLORS
 # ---------------------------
@@ -2973,7 +3044,7 @@ def decode_msp_bf_config_response(payload: bytes) -> str:
     currentscale = int.from_bytes(payload[index:index+2], 'little')
     index += 2
     currentoffset = int.from_bytes(payload[index:index+2], 'little')
-
+    
     # Mixer mode names
     mixer_modes = {
         0: "TRI",
@@ -3141,7 +3212,7 @@ def decode_msp_osd_config_response(payload: bytes) -> str:
     index += 1
     cap_alarm = int.from_bytes(payload[index:index+2], 'little')
     index += 2
-
+    
     # Video system names
     video_systems = {
         0: "AUTO",
@@ -3652,7 +3723,7 @@ def decode_msp_debug_response(payload: bytes) -> str:
         debug_values.append(value)
 
     return f"Debug Values: {debug_values[0]}, {debug_values[1]}, {debug_values[2]}, {debug_values[3]}"
-
+    
 # ---------------------------
 # MSP2_SENSOR_OPTICALFLOW_MT
 # ---------------------------
@@ -3660,7 +3731,7 @@ def decode_msp2_sensor_opticalflow_mt_request(payload: bytes) -> str:
     if len(payload) == 0:
         return "Request Optical Flow MT Data"
     return MSG_INVALID_PAYLOAD
-
+    
 def decode_msp2_sensor_opticalflow_mt_response(payload: bytes) -> str:
     """
     Decodes optical flow MT sensor data.

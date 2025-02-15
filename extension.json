@@ -2,7 +2,7 @@
   "name": "Betaflight MSP",
   "apiVersion": "1.0.0",
   "author": "Steve Evans",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Betaflight MultiWii Serial Protocol (MSP)",
   "extensions": {
     "Betaflight MSP": {

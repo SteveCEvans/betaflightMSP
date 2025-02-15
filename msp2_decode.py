@@ -7,6 +7,30 @@ from typing import Dict, Any
 
 MSG_INVALID_PAYLOAD = "Invalid payload"
 
+# Add text type constants at the top of the file after imports
+MSP2TEXT_PILOT_NAME = 1
+MSP2TEXT_CRAFT_NAME = 2
+MSP2TEXT_PID_PROFILE_NAME = 3
+MSP2TEXT_RATE_PROFILE_NAME = 4
+MSP2TEXT_BUILDKEY = 5
+MSP2TEXT_RELEASENAME = 6
+MSP2TEXT_CUSTOM_MSG_0 = 7  # First of 4 custom message slots
+
+# Common type name lookup dictionary used by both get and set text decoders
+def get_text_type_name(text_type: int) -> str:
+    type_names = {
+        MSP2TEXT_PILOT_NAME: "Pilot Name",
+        MSP2TEXT_CRAFT_NAME: "Craft Name", 
+        MSP2TEXT_PID_PROFILE_NAME: "PID Profile Name",
+        MSP2TEXT_RATE_PROFILE_NAME: "Rate Profile Name",
+        MSP2TEXT_BUILDKEY: "Build Key",
+        MSP2TEXT_RELEASENAME: "Release Name"
+    }
+    # Handle custom message slots
+    if text_type >= MSP2TEXT_CUSTOM_MSG_0 and text_type < MSP2TEXT_CUSTOM_MSG_0 + 4:
+        return f"Custom Message {text_type - MSP2TEXT_CUSTOM_MSG_0}"
+    return type_names.get(text_type, f"Unknown Text Type ({text_type})")
+
 def decode_no_fields(payload: bytes) -> str:
     if len(payload) == 0:
         return f"Unknown command"
@@ -25,19 +49,23 @@ def decode_no_fields(payload: bytes) -> str:
 # ---------------------------
 
 # ---------------------------
-# MSP2_GET_TEXT
+# MSP2_GET_TEXT (0x3006)
 # ---------------------------
 def decode_msp2_get_text_request(payload: bytes) -> str:
-    if len(payload) == 0:
-        return "Request for text"
-    return MSG_INVALID_PAYLOAD
+    if len(payload) >= 1:
+        text_type = payload[0]
+        return f"Request for {get_text_type_name(text_type)}"
+    return "Request for text (no type specified)"
 
 def decode_msp2_get_text_response(payload: bytes) -> str:
-    try:
-        text = payload.decode('ascii', 'replace').rstrip('\x00')
-        return f'Text: "{text}"'
-    except:
-        return MSG_INVALID_PAYLOAD
+    if len(payload) >= 2:  # Need at least type and length bytes
+        text_type = payload[0]
+        try:
+            text = payload[2:2+payload[1]].decode('ascii', 'replace').rstrip('\x00')
+            return f"{get_text_type_name(text_type)}: '{text}'"
+        except:
+            return MSG_INVALID_PAYLOAD
+    return MSG_INVALID_PAYLOAD
 
 # ---------------------------
 # MSP2_SENSOR_CONFIG_ACTIVE
@@ -1208,13 +1236,18 @@ def decode_msp2_set_text_request(payload: bytes) -> str:
     Decodes the request to set text.
     
     Payload format:
-    char text[];  // Null-terminated string
+    uint8_t textType;  // Type of text to set
+    uint8_t length;    // Length of text
+    char text[];       // Text string
     """
-    try:
-        text = payload.decode('ascii', 'replace').rstrip('\x00')
-        return f'Set Text: "{text}"'
-    except:
-        return MSG_INVALID_PAYLOAD
+    if len(payload) >= 2:  # Need at least type and length bytes
+        text_type = payload[0]
+        try:
+            text = payload[2:2+payload[1]].decode('ascii', 'replace').rstrip('\x00')
+            return f"Set {get_text_type_name(text_type)}: '{text}'"
+        except:
+            return MSG_INVALID_PAYLOAD
+    return MSG_INVALID_PAYLOAD
 
 def decode_msp2_set_text_response(payload: bytes) -> str:
     """
